@@ -88,6 +88,8 @@ async def on_message(message):
     elif "f!graph" == message.content.lower():        
         file = discord.File("price.png", filename="price.png")
         await message.channel.send("price.png", file=file)
+    elif "f!" in message.content:
+        await message.channel.send("Command not found.")
     # elif "f!graph 24" == message.content.lower():
 
 
