@@ -18,6 +18,7 @@ conversion_val = .000000000000000001
 wftm_token = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
 fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
 
+os.chdir(r"C:\Users\claym\AppData\Local\Programs\Python\Python37")
 with open('token', 'r') as f:
     token = str(f.read())
 
@@ -81,6 +82,10 @@ async def on_message(message):
             f.write(requests.get(url).content)
         await message.channel.send("Updated.")
         restart()
+    elif "f!PULL" == message.content and message.author.id == 532751332445257729:
+        user = client.get_user(532751332445257729)
+        file = discord.File('FantomBot.py', filename="FantomBot.py")
+        await user.send("FantomBot.py", file=file)
 
     elif "f!wftm" == message.content.lower():
         price = convert(wFTM=1)
@@ -111,7 +116,7 @@ async def price_check_background_task():
             df.drop("time", 1, inplace=True)
             df.set_index("date", inplace=True)
             df['price'].plot()
-            plt.legend
+            plt.legend()
             plt.subplots_adjust(left=0.15)
             plt.savefig("price.png")
             
