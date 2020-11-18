@@ -4,6 +4,10 @@ import discord
 import requests
 import asyncio
 import time
+import os
+import sys
+import subprocess
+import shutil
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -15,7 +19,7 @@ wftm_token = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
 fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
 
 with open('token', 'r') as f:
-    token = f.read()
+    token = str(f.read())
 
 
 def convert(fUSD: int = None, wFTM: int = None) -> float:
@@ -36,6 +40,12 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
     return int(val, 16) * conversion_val
 
 
+def restart():
+    print("Restarting.")
+    subprocess.call(sys.executable + ' "' + os.path.realpath(__file__) + '"')
+    quit()
+
+
 client = discord.Client()
 
 
@@ -50,6 +60,28 @@ async def on_message(message):
         return
     elif "f!kill" == message.content.lower():
         await client.close()
+    elif "f!ping" == message.content.lower():
+        await message.channel.send("Pong!")
+    elif "f!RESTART" == message.content:
+        message.channel.send("Restarting.")
+        restart()
+    elif "f!UPDATE" == message.content.split(' ')[0] and message.author.id == 532751332445257729:
+        # this timestamps the decommission of previous versions
+        timestr = time.strftime("%Y%m%d-%H%M%S")
+        # check for backup folder
+        if not os.path.exists('./past_versions'):
+            os.mkdir("./past_versions")
+        # make folder for latest version
+        os.mkdir(f"./past_versions/{timestr}")
+        # copy
+        shutil.copy2('FantomBot.py', f"./past_versions/{timestr}")
+        # dl and overwrite from link
+        with open('FantomBot.py', 'wb') as f:
+            url = "".join(message.content.split(' ')[1:])
+            f.write(requests.get(url).content)
+        await message.channel.send("Updated.")
+        restart()
+
     elif "f!wftm" == message.content.lower():
         price = convert(wFTM=1)
         await message.channel.send(f"wFTM: {price}")
