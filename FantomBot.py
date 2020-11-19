@@ -72,13 +72,12 @@ async def on_message(message):
     elif "f!ping" == message.content.lower():
         await message.channel.send("Pong!")
     elif "f!anondm" in message.content.lower():
-        await dm(admins[0], 'test')
-        # split = message.content.split(' ')
-        # split[2] = "".join(split[2:])
-        # if len(split) != 3:
-        #     await message.channel.send("Poorly formatted. [command] [user id] [message]")
-        #     return
-        # await dm(split[1], "Anon says:\n" + split[2])
+        split = message.content.split(' ')
+        split[2] = "".join(split[2:])
+        if len(split) != 3:
+            await message.channel.send("Poorly formatted. [command] [user id] [message]")
+            return
+        await dm(int(split[1]), "Anon says:\n" + split[2])
     elif "f!RESTART" == message.content:
         message.channel.send("Restarting.")
         restart()
