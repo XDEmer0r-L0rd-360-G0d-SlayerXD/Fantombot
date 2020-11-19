@@ -14,19 +14,26 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 style.use("fivethirtyeight")
 
-# I haven't added you because it would give you control of f!UPDATE and idk if its too much of a risk
+# I haven't added you because it would give you control of f!UPDATE and idk if you want that
 admins = (532751332445257729,)
 
-conversion_val = .000000000000000001
-wftm_token = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
-fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
-
+# Fix dir
 os.chdir(r"C:\Users\claym\AppData\Local\Programs\Python\Python37")
+
+# Load token
 with open('token', 'r') as f:
     token = str(f.read())
 
 
 def convert(fUSD: int = None, wFTM: int = None) -> float:
+    """
+    Gets its data via https://funi.exchange/#/swap/
+    Convert only between fUSD and wFTM.
+    """
+    conversion_val = .000000000000000001
+    wftm_token = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
+    fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
+
     if fUSD:
         body = {"operationName": "GetUniswapAmountsOut", "variables": {"amountIn": str(hex(int(fUSD//conversion_val))), "tokens": [
             fusd_token, wftm_token]},
@@ -39,7 +46,6 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
         raise ValueError('No conversion done.')
     url = 'https://xapi2.fantom.network/api'
     response = requests.post(url=url, json=body).json()
-    # print(response)
     val = response['data']['defiUniswapAmountsOut'][1]
     return int(val, 16) * conversion_val
 
@@ -47,10 +53,14 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
 def restart():
     print("Restarting.")
     subprocess.call(sys.executable + ' "' + os.path.realpath(__file__) + '"')
+    # In theory the code never reaches this section but I felt like it should force close if it did
     quit()
 
 
 async def dm(user_id: int, text: str):
+    """
+    A very simple dm wrapper for modularity
+    """
     user = client.get_user(user_id)
     await user.send(text)
 
@@ -65,6 +75,9 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
+    """
+    Massive message parser to try to do things
+    """
     try:
         if message.author == client.user:
             return
@@ -127,6 +140,9 @@ async def on_message(message):
 
 
 async def price_check_background_task():
+    """
+    Constantly pulls site data and updates the graph
+    """
     await client.wait_until_ready()
 
     while not client.is_closed():
@@ -156,5 +172,6 @@ async def price_check_background_task():
             await asyncio.sleep(60)
 
 
+# regular bot stuff
 client.loop.create_task(price_check_background_task())
 client.run(token)
