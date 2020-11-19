@@ -74,14 +74,14 @@ async def on_message(message):
             await message.channel.send("Pong!")
         elif "f!anondm" in message.content.lower():
             split = message.content.split(' ')
-            split[2] = "".join(split[2:])
             if len(split) < 3:
                 await message.channel.send("Poorly formatted. [command] [user id] [message]")
                 return
             else:
+                split[2] = "".join(split[2:])
                 try:
                     int(split[1])
-                except:
+                except Exception:
                     await message.channel.send("Poorly formatted. [command] [user id] [message]")
                     return
                 await dm(int(split[1]), "Anon says:\n" + split[2])
