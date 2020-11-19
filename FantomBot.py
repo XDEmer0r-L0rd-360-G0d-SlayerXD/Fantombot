@@ -83,6 +83,9 @@ async def on_message(message):
         restart()
     elif "f!UPDATE" == message.content.split(' ')[0] and message.author.id == 532751332445257729:
         # this timestamps the decommission of previous versions
+        if "raw" not in message.content:
+            message.channel.send("Raw not found in url.")
+            return
         timestr = time.strftime("%Y%m%d-%H%M%S")
         # check for backup folder
         if not os.path.exists('./past_versions'):
