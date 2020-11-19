@@ -71,6 +71,13 @@ async def on_message(message):
         await client.close()
     elif "f!ping" == message.content.lower():
         await message.channel.send("Pong!")
+    elif "f!anondm" in message.content.lower():
+        split = message.content.split(' ')
+        split[2] = "".join(split[2:])
+        if len(split) != 3:
+            await message.channel.send("Poorly formatted. [command] [user id] [message]")
+            return
+        await dm(split[1], split[2])
     elif "f!RESTART" == message.content:
         message.channel.send("Restarting.")
         restart()
@@ -88,7 +95,7 @@ async def on_message(message):
         with open('FantomBot.py', 'wb') as f:
             url = "".join(message.content.split(' ')[1:])
             f.write(requests.get(url).content)
-        await message.channel.send("Updated.")
+        await message.channel.send("Updating.")
         restart()
     elif "f!PULL" == message.content and message.author.id in admins:
         user = client.get_user(message.author.id)
