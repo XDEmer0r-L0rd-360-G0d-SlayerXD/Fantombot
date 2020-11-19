@@ -106,85 +106,88 @@ async def on_message(message):
     """
     Massive message parser to try to do things
     """
-    # extra layer of variables to ensure I get to keep a pattern without accidentally breaking something
-    msg_content = message.content
-    msg_author = message.author
-    msg_channel = message.channel
+    try:
+        # extra layer of variables to ensure I get to keep a pattern without accidentally breaking something
+        msg_content = message.content
+        msg_author = message.author
+        msg_channel = message.channel
 
-    # If bot message or has no prefix, ignore
-    if message.author == client.user or len(msg_content) < len(prefix) or msg_content[:len(prefix)] != prefix:
-        return
-
-    # remove prefix, get command, and args(as a single string)
-    # todo may need to remove this typing
-    msg_command: str = msg_content[len(prefix):].split(' ')[0]
-    temp = msg_content.split(' ')
-    if len(temp) > 1:
-        msg_args: str = ' '.join(temp[1:])
-    else:
-        # I may want to set this default to None or something else
-        msg_args: str = ""
-
-    if "" == msg_command:
-        await msg_channel.send("No Command")
-
-    elif "kill" == msg_command.lower() and msg_author.id in bot_admins:
-        await client.close()
-
-    elif 'ping' == msg_command.lower():
-        await message.channel.send("Pong!")
-
-    elif "anondm" in msg_command.lower():
-        # this has been moved to a func for sandboxing of vars
-        await anondm(msg_args, msg_channel, msg_author)
-
-    elif "RESTART" == msg_command:
-        # I felt that anyone should be allow to do this, but don't mind setting it to admin only
-        await msg_channel.send("Restarting.")
-        restart()
-
-    elif "UPDATE" == msg_command and msg_author.id in bot_owners:
-        # this timestamps the decommission of previous versions
-        if "raw" not in msg_args:
-            msg_channel.send("Url Issue (no url/missing raw).")
+        # If bot message or has no prefix, ignore
+        if message.author == client.user or len(msg_content) < len(prefix) or msg_content[:len(prefix)] != prefix:
             return
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        # check for backup folder
-        if not os.path.exists('./bot_data/past_versions'):
-            os.mkdir("./bot_data/past_versions")
-        # make folder for latest version
-        os.mkdir(f"./bot_data/past_versions/{timestr}")
-        # copy
-        shutil.copy2('FantomBot.py', f"./bot_data/past_versions/{timestr}")
-        # dl and overwrite from link
-        with open('FantomBot.py', 'wb') as f:
-            url = msg_args
-            f.write(requests.get(url).content)
-        await msg_channel.send("Updating.")
-        restart()
 
-    elif "PULL" == msg_command and msg_author.id in bot_owners:
-        user = client.get_user(msg_author.id)
-        file = discord.File('FantomBot.py', filename="FantomBot.py")
-        await user.send("FantomBot.py", file=file)
-
-    elif "wftm" == msg_command.lower():
-        if msg_args == "":
-            msg_args = "1"
-        if only_digits(msg_args):
-            price = convert(wFTM=max(0, int(msg_args)))
-            await msg_channel.send(f"wFTM: {price}")
+        # remove prefix, get command, and args(as a single string)
+        # todo may need to remove this typing
+        msg_command: str = msg_content[len(prefix):].split(' ')[0]
+        temp = msg_content.split(' ')
+        if len(temp) > 1:
+            msg_args: str = ' '.join(temp[1:])
         else:
-            await msg_channel.send("Bad value.")
+            # I may want to set this default to None or something else
+            msg_args: str = ""
 
-    elif "graph" == msg_command.lower():
-        # I think your want for time scales would be fixed you generated the graph
-        # every time this calledand not by it self automatically.
-        file = discord.File("price.png", filename="price.png")
-        await msg_channel.send("price.png", file=file)
+        if "" == msg_command:
+            await msg_channel.send("No Command")
 
-    else:
-        await msg_channel.send("Command not found")
+        elif "kill" == msg_command.lower() and msg_author.id in bot_admins:
+            await client.close()
+
+        elif 'ping' == msg_command.lower():
+            await message.channel.send("Pong!")
+
+        elif "anondm" in msg_command.lower():
+            # this has been moved to a func for sandboxing of vars
+            await anondm(msg_args, msg_channel, msg_author)
+
+        elif "RESTART" == msg_command:
+            # I felt that anyone should be allow to do this, but don't mind setting it to admin only
+            await msg_channel.send("Restarting.")
+            restart()
+
+        elif "UPDATE" == msg_command and msg_author.id in bot_owners:
+            # this timestamps the decommission of previous versions
+            if "raw" not in msg_args:
+                msg_channel.send("Url Issue (no url/missing raw).")
+                return
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            # check for backup folder
+            if not os.path.exists('./bot_data/past_versions'):
+                os.mkdir("./bot_data/past_versions")
+            # make folder for latest version
+            os.mkdir(f"./bot_data/past_versions/{timestr}")
+            # copy
+            shutil.copy2('FantomBot.py', f"./bot_data/past_versions/{timestr}")
+            # dl and overwrite from link
+            with open('FantomBot.py', 'wb') as f:
+                url = msg_args
+                f.write(requests.get(url).content)
+            await msg_channel.send("Updating.")
+            restart()
+
+        elif "PULL" == msg_command and msg_author.id in bot_owners:
+            user = client.get_user(msg_author.id)
+            file = discord.File('FantomBot.py', filename="FantomBot.py")
+            await user.send("FantomBot.py", file=file)
+
+        elif "wftm" == msg_command.lower():
+            if msg_args == "":
+                msg_args = "1"
+            if only_digits(msg_args):
+                price = convert(wFTM=max(0, int(msg_args)))
+                await msg_channel.send(f"wFTM: {price}")
+            else:
+                await msg_channel.send("Bad value.")
+
+        elif "graph" == msg_command.lower():
+            # I think your want for time scales would be fixed you generated the graph
+            # every time this calledand not by it self automatically.
+            file = discord.File("price.png", filename="price.png")
+            await msg_channel.send("price.png", file=file)
+
+        else:
+            await msg_channel.send("Command not found")
+    except Exception as e:
+        await dm(bot_admins[0], str(e) + '\n' + message.content)
 
 
 async def price_check_background_task():
