@@ -74,10 +74,17 @@ async def on_message(message):
     elif "f!anondm" in message.content.lower():
         split = message.content.split(' ')
         split[2] = "".join(split[2:])
-        if len(split) != 3:
+        if len(split) < 3:
             await message.channel.send("Poorly formatted. [command] [user id] [message]")
             return
-        await dm(int(split[1]), "Anon says:\n" + split[2])
+        else:
+            try:
+                int(split)
+            except ValueError:
+                await message.channel.send("Poorly formatted. [command] [user id] [message]")
+                return
+            await dm(int(split[1]), "Anon says:\n" + split[2])
+
     elif "f!RESTART" == message.content:
         message.channel.send("Restarting.")
         restart()
