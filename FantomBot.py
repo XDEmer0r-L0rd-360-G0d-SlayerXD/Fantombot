@@ -78,7 +78,7 @@ async def on_message(message):
                 await message.channel.send("Poorly formatted. [command] [user id] [message]")
                 return
             else:
-                split[2] = "".join(split[2:])
+                split[2] = " ".join(split[2:])
                 try:
                     int(split[1])
                 except Exception:
