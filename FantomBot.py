@@ -79,8 +79,8 @@ async def on_message(message):
             return
         else:
             try:
-                int(split)
-            except ValueError:
+                int(split[1])
+            except:
                 await message.channel.send("Poorly formatted. [command] [user id] [message]")
                 return
             await dm(int(split[1]), "Anon says:\n" + split[2])
