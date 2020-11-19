@@ -14,6 +14,9 @@ import matplotlib.pyplot as plt
 from matplotlib import style
 style.use("fivethirtyeight")
 
+# I haven't added you because it would give you control of f!UPDATE and idk if its too much of a risk
+admins = (532751332445257729,)
+
 conversion_val = .000000000000000001
 wftm_token = "0x21be370d5312f44cb42ce377bc9b8a0cef1a4c83"
 fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
@@ -45,6 +48,11 @@ def restart():
     print("Restarting.")
     subprocess.call(sys.executable + ' "' + os.path.realpath(__file__) + '"')
     quit()
+
+
+async def dm(user_id: int, text: str):
+    user = client.get_user(user_id)
+    await user.send(text)
 
 
 client = discord.Client()
@@ -82,8 +90,8 @@ async def on_message(message):
             f.write(requests.get(url).content)
         await message.channel.send("Updated.")
         restart()
-    elif "f!PULL" == message.content and message.author.id == 532751332445257729:
-        user = client.get_user(532751332445257729)
+    elif "f!PULL" == message.content and message.author.id in admins:
+        user = client.get_user(message.author.id)
         file = discord.File('FantomBot.py', filename="FantomBot.py")
         await user.send("FantomBot.py", file=file)
 
@@ -124,6 +132,7 @@ async def price_check_background_task():
             
         except Exception as e:
             print(str(e))
+            await dm(admins[0], str(e))
             await asyncio.sleep(60)
 
 
