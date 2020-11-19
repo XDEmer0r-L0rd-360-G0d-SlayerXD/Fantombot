@@ -65,62 +65,65 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author == client.user:
-        return
-    elif "f!kill" == message.content.lower():
-        await client.close()
-    elif "f!ping" == message.content.lower():
-        await message.channel.send("Pong!")
-    elif "f!anondm" in message.content.lower():
-        split = message.content.split(' ')
-        split[2] = "".join(split[2:])
-        if len(split) < 3:
-            await message.channel.send("Poorly formatted. [command] [user id] [message]")
+    try:
+        if message.author == client.user:
             return
-        else:
-            try:
-                int(split[1])
-            except:
+        elif "f!kill" == message.content.lower():
+            await client.close()
+        elif "f!ping" == message.content.lower():
+            await message.channel.send("Pong!")
+        elif "f!anondm" in message.content.lower():
+            split = message.content.split(' ')
+            split[2] = "".join(split[2:])
+            if len(split) < 3:
                 await message.channel.send("Poorly formatted. [command] [user id] [message]")
                 return
-            await dm(int(split[1]), "Anon says:\n" + split[2])
+            else:
+                try:
+                    int(split[1])
+                except:
+                    await message.channel.send("Poorly formatted. [command] [user id] [message]")
+                    return
+                await dm(int(split[1]), "Anon says:\n" + split[2])
 
-    elif "f!RESTART" == message.content:
-        message.channel.send("Restarting.")
-        restart()
-    elif "f!UPDATE" == message.content.split(' ')[0] and message.author.id == 532751332445257729:
-        # this timestamps the decommission of previous versions
-        if "raw" not in message.content:
-            message.channel.send("Raw not found in url.")
-            return
-        timestr = time.strftime("%Y%m%d-%H%M%S")
-        # check for backup folder
-        if not os.path.exists('./past_versions'):
-            os.mkdir("./past_versions")
-        # make folder for latest version
-        os.mkdir(f"./past_versions/{timestr}")
-        # copy
-        shutil.copy2('FantomBot.py', f"./past_versions/{timestr}")
-        # dl and overwrite from link
-        with open('FantomBot.py', 'wb') as f:
-            url = "".join(message.content.split(' ')[1:])
-            f.write(requests.get(url).content)
-        await message.channel.send("Updating.")
-        restart()
-    elif "f!PULL" == message.content and message.author.id in admins:
-        user = client.get_user(message.author.id)
-        file = discord.File('FantomBot.py', filename="FantomBot.py")
-        await user.send("FantomBot.py", file=file)
+        elif "f!RESTART" == message.content:
+            message.channel.send("Restarting.")
+            restart()
+        elif "f!UPDATE" == message.content.split(' ')[0] and message.author.id == 532751332445257729:
+            # this timestamps the decommission of previous versions
+            if "raw" not in message.content:
+                message.channel.send("Raw not found in url.")
+                return
+            timestr = time.strftime("%Y%m%d-%H%M%S")
+            # check for backup folder
+            if not os.path.exists('./past_versions'):
+                os.mkdir("./past_versions")
+            # make folder for latest version
+            os.mkdir(f"./past_versions/{timestr}")
+            # copy
+            shutil.copy2('FantomBot.py', f"./past_versions/{timestr}")
+            # dl and overwrite from link
+            with open('FantomBot.py', 'wb') as f:
+                url = "".join(message.content.split(' ')[1:])
+                f.write(requests.get(url).content)
+            await message.channel.send("Updating.")
+            restart()
+        elif "f!PULL" == message.content and message.author.id in admins:
+            user = client.get_user(message.author.id)
+            file = discord.File('FantomBot.py', filename="FantomBot.py")
+            await user.send("FantomBot.py", file=file)
 
-    elif "f!wftm" == message.content.lower():
-        price = convert(wFTM=1)
-        await message.channel.send(f"wFTM: {price}")
-    elif "f!graph" == message.content.lower():        
-        file = discord.File("price.png", filename="price.png")
-        await message.channel.send("price.png", file=file)
-    elif "f!" in message.content:
-        await message.channel.send("Command not found.")
-    # elif "f!graph 24" == message.content.lower():
+        elif "f!wftm" == message.content.lower():
+            price = convert(wFTM=1)
+            await message.channel.send(f"wFTM: {price}")
+        elif "f!graph" == message.content.lower():
+            file = discord.File("price.png", filename="price.png")
+            await message.channel.send("price.png", file=file)
+        elif "f!" in message.content:
+            await message.channel.send("Command not found.")
+        # elif "f!graph 24" == message.content.lower():
+    except Exception as e:
+        await dm(admins[0], str(e))
 
 
 async def price_check_background_task():
