@@ -55,7 +55,12 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
     else:
         raise ValueError('No conversion done.')
     url = 'https://xapi2.fantom.network/api'
-    response = requests.post(url=url, json=body).json()
+    response = requests.post(url=url, json=body)
+    try:
+        response = response.json()
+    except Exception:
+        asyncio.sleep(1)
+        response = requests.post(url=url, json=body).json()
     val = response['data']['defiUniswapAmountsOut'][1]
     return int(val, 16) * conversion_val
 
@@ -220,7 +225,7 @@ async def price_check_background_task():
             
         except Exception as e:
             print(str(e))
-            await dm(bot_admins[0], str(e), price,)
+            await dm(bot_admins[0], str(e) + str(price))
             await asyncio.sleep(60)
 
 
