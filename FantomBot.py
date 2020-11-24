@@ -36,6 +36,15 @@ del token_file
 if not os.path.isdir('bot_data'):
     os.mkdir('bot_data')
 
+help_text = f"""Help: (Prefix is {prefix}, '[mandatory]', '<optional>')
+ping: Returns Pong as a check too see if its alive
+changelog: Get link to page that shows the recent changes
+anon_dm [target id: string] [message: string]: Send a DM anonymously
+wftm <amount to convert: number>: Get the current wftm to fusd conversion
+graph <hour/day/week/month: string>: Get a graph of {prefix}wftm over time
+dl_data: Sends you the graph data for your own use
+"""
+
 
 def convert(fUSD: int = None, wFTM: int = None) -> float:
     """
@@ -56,13 +65,15 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
                 "query": "query GetUniswapAmountsOut($amountIn: BigInt!, $tokens: [Address!]!) {\n  defiUniswapAmountsOut(amountIn: $amountIn, tokens: $tokens)\n}\n"}
     else:
         raise ValueError('No conversion done.')
+
     url = 'https://xapi2.fantom.network/api'
-    response = requests.post(url=url, json=body)
     try:
-        response = response.json()
+        response = requests.post(url=url, json=body).json()
     except Exception:
+        # try again 1 second later
         asyncio.sleep(1)
         response = requests.post(url=url, json=body).json()
+
     val = response['data']['defiUniswapAmountsOut'][1]
     return int(val, 16) * conversion_val
 
@@ -120,6 +131,7 @@ async def on_message(message):
     """
     Massive message parser to try to do things
     """
+    # todo check file sending and if that works great, start working on a help
     try:
         # extra layer of variables to ensure I get to keep a pattern without accidentally breaking something
         msg_content = message.content
@@ -127,6 +139,7 @@ async def on_message(message):
         msg_channel = message.channel
 
         if msg_content == "f!PANIC_RESTORE" and msg_author.id in bot_remote:
+            # Untested but should work hopefully
             os.remove("FantomBot.py")
             shutil.copy2(os.path.join("./bot_data/past_versions/",
                                       os.listdir("./bot_data/past_versions/")[-1], "FantomBot.py"), 'FantomBot.py')
@@ -162,7 +175,13 @@ async def on_message(message):
         elif 'ping' == msg_command.lower():
             await message.channel.send("Pong!")
 
-        elif "anondm" in msg_command.lower():
+        elif "changelog" == msg_command.lower():
+            await dm(msg_author.id, "Changelog:\n https://github.com/XDEmer0r-L0rd-360-G0d-SlayerXD/Fantombot/commits/master/FantomBot.py")
+
+        elif "help" == msg_command.lower():
+            await dm(msg_author.id, help_text)
+
+        elif "anon_dm" in msg_command.lower():
             # this has been moved to a func for sandboxing of vars
             await anondm(msg_args, msg_channel, msg_author)
 
