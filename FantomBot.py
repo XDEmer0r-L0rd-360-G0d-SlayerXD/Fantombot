@@ -9,6 +9,7 @@ import sys
 import subprocess
 import shutil
 import string
+import traceback
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -125,6 +126,12 @@ async def on_message(message):
         msg_author = message.author
         msg_channel = message.channel
 
+        if msg_content == "f!PANIC_RESTORE" and msg_author.id in bot_remote:
+            os.remove("FantomBot.py")
+            shutil.copy2(os.path.join("./bot_data/past_versions/",
+                                      os.listdir("./bot_data/past_versions/")[-1], "FantomBot.py"), 'FantomBot.py')
+            restart()
+
         # If bot message or has no prefix, ignore
         if message.author == client.user or len(msg_content) < len(prefix) or msg_content[:len(prefix)] != prefix:
             return
@@ -132,7 +139,7 @@ async def on_message(message):
         # get the user ID to add to a user file, if not already in the file
         with open("user_list.txt", "r") as f:
             text = f.read()
-        if msg_author.id not in text:
+        if str(msg_author.id) not in text:
             with open("user_list.txt", 'a') as f:
                 f.write(f"{msg_author.id}\n")
         
@@ -234,7 +241,7 @@ async def on_message(message):
         else:
             await msg_channel.send("Command not found")
     except Exception as e:
-        await dm(bot_admins[0], str(e) + '\n' + message.content)
+        await dm(bot_admins[0], traceback.format_exc())
 
 
 async def price_check_background_task():
