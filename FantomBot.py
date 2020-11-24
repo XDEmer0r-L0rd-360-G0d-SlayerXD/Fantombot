@@ -74,6 +74,7 @@ def restart():
 
 
 def only_digits(test: str) -> bool:
+    # checks for only numbers in string without using a try/except
     return not any([a not in string.digits for a in test])
 
 
@@ -97,6 +98,12 @@ async def anondm(msg_args, base_channel, base_author):
     split[1] = " ".join(split[1:])
     await dm(int(split[0]), "Anon says:\n" + split[1].strip())
     return
+
+
+async def send_file(user_id, path):
+    user = client.get_user(user_id)
+    file = discord.File(path)
+    await user.send(file=file)
 
 
 client = discord.Client()
@@ -182,6 +189,9 @@ async def on_message(message):
             file = discord.File('FantomBot.py', filename="FantomBot.py")
             await user.send("FantomBot.py", file=file)
 
+        elif "DL" == msg_command and msg_author.id in bot_remote:
+            await send_file(msg_author.id, msg_args)
+
         elif "wftm" == msg_command.lower():
             if msg_args == "":
                 msg_args = "1"
@@ -216,6 +226,10 @@ async def on_message(message):
             
             file = discord.File("price.png", filename="price.png")
             await msg_channel.send("price.png", file=file)
+
+        elif "dl_data" == msg_command.lower():
+            # Do we want this to dm or to post into channel? todo
+            await send_file(msg_author.id, "price.csv")
 
         else:
             await msg_channel.send("Command not found")
