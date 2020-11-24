@@ -120,7 +120,20 @@ async def on_message(message):
         # If bot message or has no prefix, ignore
         if message.author == client.user or len(msg_content) < len(prefix) or msg_content[:len(prefix)] != prefix:
             return
+        
+        # get the user ID to add to a user file, if not already in the file
+        fileObj = open("user_list.txt", "r+")
+        users = fileObj.read().splitlines()
+        isIn = False
 
+        for name in users:
+            if users == msg_author.id:
+                isIn = True
+
+        if not isIn:
+            fileObj.write("{msg_author.id}\n")
+        fileObj.close()
+        
         # remove prefix, get command, and args(as a single string)
         # todo may need to remove this typing
         msg_command: str = msg_content[len(prefix):].split(' ')[0]
@@ -184,8 +197,28 @@ async def on_message(message):
                 await msg_channel.send("Bad value.")
 
         elif "graph" == msg_command.lower():
-            # I think your want for time scales would be fixed you generated the graph
-            # every time this calledand not by it self automatically.
+            plt.clf()
+            df = pd.read_csv("price.csv", names=['time', 'price'])
+
+            if "hour" in msg_args.lower():
+                df = df if len(df) < 60    else df[-60:]
+            elif "day" in msg_args.lower():
+                df = df if len(df) < 1440  else df[-1440:]
+            elif "week" in msg_args.lower():
+                df = df if len(df) < 10080 else df[-10080:]
+            elif "month" in msg_args.lower():
+                df = df if len(df) < 43200 else df[-43200:]
+            else:
+                df = df
+            print(df.tail())
+            
+            df['date'] = pd.to_datetime(df['time'], unit='s')
+            df.drop("time", 1, inplace=True)
+            df.set_index("date", inplace=True)
+            df['price'].plot()
+            plt.subplots_adjust(left=0.15)
+            plt.savefig("price.png")
+            
             file = discord.File("price.png", filename="price.png")
             await msg_channel.send("price.png", file=file)
 
@@ -207,19 +240,7 @@ async def price_check_background_task():
             price = convert(wFTM=1)
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
-            plt.clf()
-            df = pd.read_csv("price.csv", names=['time', 'price'])
-            # hour:  df = df[-60:]
-            # day:   df = df[-1440:]
-            # week:  df = df[-10080:]
-            # month: df = df[-43200:]
-            df['date'] = pd.to_datetime(df['time'], unit='s')
-            df.drop("time", 1, inplace=True)
-            df.set_index("date", inplace=True)
-            df['price'].plot()
-            plt.legend()
-            plt.subplots_adjust(left=0.15)
-            plt.savefig("price.png")
+
             
             await asyncio.sleep(60)
             
