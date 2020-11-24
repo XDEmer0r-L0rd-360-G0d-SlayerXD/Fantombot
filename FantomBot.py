@@ -14,6 +14,7 @@ import traceback
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import style
+
 style.use("fivethirtyeight")
 
 # I haven't added you because it would give you control of f!UPDATE and idk if you want that
@@ -56,23 +57,28 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
     fusd_token = "0xad84341756bf337f5a0164515b1f6f993d194e1f"
 
     if fUSD:
-        body = {"operationName": "GetUniswapAmountsOut", "variables": {"amountIn": str(hex(int(fUSD//conversion_val))), "tokens": [
-            fusd_token, wftm_token]},
+        body = {"operationName": "GetUniswapAmountsOut",
+                "variables": {"amountIn": str(hex(int(fUSD // conversion_val))), "tokens": [
+                    fusd_token, wftm_token]},
                 "query": "query GetUniswapAmountsOut($amountIn: BigInt!, $tokens: [Address!]!) {\n  defiUniswapAmountsOut(amountIn: $amountIn, tokens: $tokens)\n}\n"}
     elif wFTM:
-        body = {"operationName": "GetUniswapAmountsOut", "variables": {"amountIn": str(hex(int(wFTM//conversion_val))), "tokens": [
-            wftm_token, fusd_token]},
+        body = {"operationName": "GetUniswapAmountsOut",
+                "variables": {"amountIn": str(hex(int(wFTM // conversion_val))), "tokens": [
+                    wftm_token, fusd_token]},
                 "query": "query GetUniswapAmountsOut($amountIn: BigInt!, $tokens: [Address!]!) {\n  defiUniswapAmountsOut(amountIn: $amountIn, tokens: $tokens)\n}\n"}
     else:
         raise ValueError('No conversion done.')
 
     url = 'https://xapi2.fantom.network/api'
-    try:
-        response = requests.post(url=url, json=body).json()
-    except Exception:
-        # try again 1 second later
-        asyncio.sleep(1)
-        response = requests.post(url=url, json=body).json()
+    while True:
+        # This will keep trying until it stops erroring
+        try:
+            response = requests.post(url=url, json=body).json()
+            break
+        except Exception:
+            # try again 1 second later
+            await dm(bot_remote[0], traceback.format_exc())
+            await asyncio.sleep(1)
 
     val = response['data']['defiUniswapAmountsOut'][1]
     return int(val, 16) * conversion_val
@@ -87,7 +93,7 @@ def restart():
 
 def only_digits(test: str) -> bool:
     # checks for only numbers in string without using a try/except
-    return not any([a not in string.digits for a in test])
+    return not any([a not in string.digits + '.' for a in test])
 
 
 async def dm(user_id: int, text: str):
@@ -116,6 +122,28 @@ async def send_file(user_id, path):
     user = client.get_user(user_id)
     file = discord.File(path)
     await user.send(file=file)
+
+
+async def check_triggers(price):
+    if not os.path.isfile('./bot_data/triggers.txt'):
+        with open('./bot_data/triggers.txt', 'w') as f:
+            f.write(str({}))
+    with open("./bot_data/triggers.txt", "r") as f:
+        testing: dict = eval(f.read())
+    # format: {id: {"<": {values}, ">": {values}}}
+    for k, v in testing.items():
+        for a in v["<"]:
+            if price < a:
+                await dm(k, f"wftm dropped below {a}")
+        for a in v[">"]:
+            if price > a:
+                await dm(k, f"wftm is now above {a}")
+
+def load_triggers():
+    with open('./bot_data/triggers.txt', 'r') as f:
+        parse = eval(f.read())
+    return parse
+
 
 
 client = discord.Client()
@@ -148,14 +176,14 @@ async def on_message(message):
         # If bot message or has no prefix, ignore
         if message.author == client.user or len(msg_content) < len(prefix) or msg_content[:len(prefix)] != prefix:
             return
-        
+
         # get the user ID to add to a user file, if not already in the file
         with open("user_list.txt", "r") as f:
             text = f.read()
         if str(msg_author.id) not in text:
             with open("user_list.txt", 'a') as f:
                 f.write(f"{msg_author.id}\n")
-        
+
         # remove prefix, get command, and args(as a single string)
         # may need to remove this typing
         msg_command: str = msg_content[len(prefix):].split(' ')[0]
@@ -176,7 +204,8 @@ async def on_message(message):
             await message.channel.send("Pong!")
 
         elif "changelog" == msg_command.lower():
-            await dm(msg_author.id, "Changelog:\n https://github.com/XDEmer0r-L0rd-360-G0d-SlayerXD/Fantombot/commits/master/FantomBot.py")
+            await dm(msg_author.id,
+                     "Changelog:\n https://github.com/XDEmer0r-L0rd-360-G0d-SlayerXD/Fantombot/commits/master/FantomBot.py")
 
         elif "help" == msg_command.lower():
             await dm(msg_author.id, help_text)
@@ -242,20 +271,52 @@ async def on_message(message):
             else:
                 df = df
             print(df.tail())
-            
+
             df['date'] = pd.to_datetime(df['time'], unit='s')
             df.drop("time", 1, inplace=True)
             df.set_index("date", inplace=True)
             df['price'].plot()
             plt.subplots_adjust(left=0.15)
             plt.savefig("price.png")
-            
+
             file = discord.File("price.png", filename="price.png")
             await msg_channel.send("price.png", file=file)
 
         elif "dl_data" == msg_command.lower():
             # Do we want this to dm or to post into channel? todo
             await send_file(msg_author.id, "price.csv")
+
+        elif "trigger" == msg_command.lower():
+            temp = msg_args.split(" ")
+            if len(temp) != 3 or temp[0] not in ("add", '+', 'remove', '-', 'list') or temp[1] not in ("<", ">") \
+                    or not only_digits(temp[2]):
+                await msg_channel.send(f"Bad command. {prefix}trigger [add/remove/list] [</>] [number]")
+                return
+
+            parse = load_triggers()
+            if temp[0] == 'list':
+                if msg_author.id not in parse:
+                    msg_channel.send(f"No triggers stored")
+                    return
+
+                out = "<\n-------\n"
+                for a in parse[msg_author.id]["<"]:
+                    out += f"{a}"
+
+                out += "\n>\n-------\n"
+                for a in parse[msg_author.id][">"]:
+                    out += f"{a}"
+
+                await msg_channel.send(out)
+
+            elif temp[0] in ('add', '+'):
+                if msg_author.id not in parse:
+                    parse[msg_author] = {"<": [], ">": []}
+                parse[msg_author][temp[1]].add(temp[2])
+                msg_channel.send(f"")
+
+
+
 
         else:
             await msg_channel.send("Command not found")
@@ -276,12 +337,12 @@ async def price_check_background_task():
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
 
-            await asyncio.sleep(60)
-            
         except Exception as e:
             print(str(e))
             await dm(bot_admins[0], str(e) + str(price))
-            await asyncio.sleep(60)
+
+        await check_triggers(price)
+        await asyncio.sleep(60)
 
 
 # regular bot stuff
