@@ -17,7 +17,7 @@ style.use("fivethirtyeight")
 
 # I haven't added you because it would give you control of f!UPDATE and idk if you want that
 # Has permission to use UPDATE and PULL commands
-bot_owners = (532751332445257729,)
+bot_remote = (532751332445257729,)
 # Can do almost anything
 bot_admins = (532751332445257729, 234168704181600258)
 
@@ -27,8 +27,9 @@ prefix = "f!"
 os.chdir(r"C:\Users\claym\AppData\Local\Programs\Python\Python37")
 
 # Load token
-with open('token', 'r') as f:
-    token = str(f.read())
+with open('token', 'r') as token_file:
+    token = str(token_file.read())
+del token_file
 
 # ensure there is a data folder to store things
 if not os.path.isdir('bot_data'):
@@ -122,20 +123,14 @@ async def on_message(message):
             return
         
         # get the user ID to add to a user file, if not already in the file
-        fileObj = open("user_list.txt", "r+")
-        users = fileObj.read().splitlines()
-        isIn = False
-
-        for name in users:
-            if users == msg_author.id:
-                isIn = True
-
-        if not isIn:
-            fileObj.write("{msg_author.id}\n")
-        fileObj.close()
+        with open("user_list.txt", "r") as f:
+            text = f.read()
+        if msg_author.id not in text:
+            with open("user_list.txt", 'a') as f:
+                f.write(f"{msg_author.id}\n")
         
         # remove prefix, get command, and args(as a single string)
-        # todo may need to remove this typing
+        # may need to remove this typing
         msg_command: str = msg_content[len(prefix):].split(' ')[0]
         temp = msg_content.split(' ')
         if len(temp) > 1:
@@ -162,7 +157,7 @@ async def on_message(message):
             await msg_channel.send("Restarting.")
             restart()
 
-        elif "UPDATE" == msg_command and msg_author.id in bot_owners:
+        elif "UPDATE" == msg_command and msg_author.id in bot_remote:
             # this timestamps the decommission of previous versions
             if "raw" not in msg_args:
                 msg_channel.send("Url Issue (no url/missing raw).")
@@ -182,7 +177,7 @@ async def on_message(message):
             await msg_channel.send("Updating.")
             restart()
 
-        elif "PULL" == msg_command and msg_author.id in bot_owners:
+        elif "PULL" == msg_command and msg_author.id in bot_remote:
             user = client.get_user(msg_author.id)
             file = discord.File('FantomBot.py', filename="FantomBot.py")
             await user.send("FantomBot.py", file=file)
@@ -201,9 +196,9 @@ async def on_message(message):
             df = pd.read_csv("price.csv", names=['time', 'price'])
 
             if "hour" in msg_args.lower():
-                df = df if len(df) < 60    else df[-60:]
+                df = df if len(df) < 60 else df[-60:]
             elif "day" in msg_args.lower():
-                df = df if len(df) < 1440  else df[-1440:]
+                df = df if len(df) < 1440 else df[-1440:]
             elif "week" in msg_args.lower():
                 df = df if len(df) < 10080 else df[-10080:]
             elif "month" in msg_args.lower():
@@ -241,7 +236,6 @@ async def price_check_background_task():
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
 
-            
             await asyncio.sleep(60)
             
         except Exception as e:
