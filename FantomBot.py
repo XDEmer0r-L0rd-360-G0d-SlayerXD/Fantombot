@@ -135,15 +135,22 @@ async def check_triggers(price):
         for a in v["<"]:
             if price < a:
                 await dm(k, f"wftm dropped below {a}")
+                testing[k]["<"].discard(a)
         for a in v[">"]:
             if price > a:
                 await dm(k, f"wftm is now above {a}")
+                testing[k][">"].discard(a)
 
-def load_triggers():
+
+def load_triggers() -> dict:
     with open('./bot_data/triggers.txt', 'r') as f:
         parse = eval(f.read())
     return parse
 
+
+def save_triggers(new: dict):
+    with open('./bot_data/triggers.txt', 'w') as f:
+        f.write(str(new))
 
 
 client = discord.Client()
@@ -287,6 +294,7 @@ async def on_message(message):
             await send_file(msg_author.id, "price.csv")
 
         elif "trigger" == msg_command.lower():
+            # ensure command is good
             temp = msg_args.split(" ")
             if len(temp) != 3 or temp[0] not in ("add", '+', 'remove', '-', 'list') or temp[1] not in ("<", ">") \
                     or not only_digits(temp[2]):
@@ -295,7 +303,7 @@ async def on_message(message):
 
             parse = load_triggers()
             if temp[0] == 'list':
-                if msg_author.id not in parse:
+                if msg_author.id not in parse or len(parse[msg_author.id]['<']) == len(parse[msg_author.id]['>']) == 0:
                     msg_channel.send(f"No triggers stored")
                     return
 
@@ -311,12 +319,17 @@ async def on_message(message):
 
             elif temp[0] in ('add', '+'):
                 if msg_author.id not in parse:
-                    parse[msg_author] = {"<": [], ">": []}
-                parse[msg_author][temp[1]].add(temp[2])
-                msg_channel.send(f"")
+                    parse[msg_author.id] = {"<": {}, ">": {}}
+                parse[msg_author.id][temp[1]].add(temp[2])
+                await msg_channel.send(f"Added {temp[1]} {temp[2]} trigger for {msg_author.name}")
 
-
-
+            elif temp[0] in ('remove', '-'):
+                if msg_author.id not in parse:
+                    await msg_channel.send("Nothing to remove")
+                    return
+                parse[msg_author.id][temp[1]].discard(temp[2])
+                await msg_channel.send(f"Removed {temp[1]} {temp[2]} trigger for {msg_author.name} if it existed.")
+            save_triggers(parse)
 
         else:
             await msg_channel.send("Command not found")
