@@ -124,12 +124,22 @@ async def send_file(user_id, path):
     await user.send(file=file)
 
 
+def load_triggers() -> dict:
+    with open('./bot_data/triggers.txt', 'r') as f:
+        parse = eval(f.read())
+    return parse
+
+
+def save_triggers(new: dict):
+    with open('./bot_data/triggers.txt', 'w') as f:
+        f.write(str(new))
+
+
 async def check_triggers(price):
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
-    with open("./bot_data/triggers.txt", "r") as f:
-        testing: dict = eval(f.read())
+    testing = load_triggers()
     # format: {id: {"<": {values}, ">": {values}}}
     for k, v in testing.items():
         for a in v["<"]:
@@ -140,17 +150,7 @@ async def check_triggers(price):
             if price > a:
                 await dm(k, f"wftm is now above {a}")
                 testing[k][">"].discard(a)
-
-
-def load_triggers() -> dict:
-    with open('./bot_data/triggers.txt', 'r') as f:
-        parse = eval(f.read())
-    return parse
-
-
-def save_triggers(new: dict):
-    with open('./bot_data/triggers.txt', 'w') as f:
-        f.write(str(new))
+    save_triggers(testing)
 
 
 client = discord.Client()
