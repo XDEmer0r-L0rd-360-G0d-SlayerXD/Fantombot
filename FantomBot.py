@@ -152,6 +152,7 @@ async def check_triggers(price):
     if not price:
         print("price is None")
         return
+    price = str(price)
     if not only_digits(price):
         return
     price = price(float)
