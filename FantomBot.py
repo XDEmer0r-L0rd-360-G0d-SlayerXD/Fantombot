@@ -47,7 +47,7 @@ dl_data: Sends you the graph data for your own use
 """
 
 
-def convert(fUSD: int = None, wFTM: int = None) -> float:
+async def convert(fUSD: int = None, wFTM: int = None) -> float:
     """
     Gets its data via https://funi.exchange/#/swap/
     Convert only between fUSD and wFTM.
@@ -266,7 +266,7 @@ async def on_message(message):
             if msg_args == "":
                 msg_args = "1"
             if only_digits(msg_args):
-                price = convert(wFTM=max(0, int(msg_args)))
+                price = await convert(wFTM=max(0, int(msg_args)))
                 await msg_channel.send(f"wFTM: {price}")
             else:
                 await msg_channel.send("Bad value.")
@@ -354,7 +354,7 @@ async def price_check_background_task():
     while not client.is_closed():
         price = None
         try:
-            price = convert(wFTM=1)
+            price = await convert(wFTM=1)
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
 
