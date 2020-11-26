@@ -162,17 +162,18 @@ async def check_triggers(price):
     testing = load_triggers()
     print('loaded')
     # format: {id: {"<": {values}, ">": {values}}}
+    base = testing
     for k, v in testing.items():
         for a in v["<"]:
-            if price < a:
+            if price < float(a):
                 await dm(k, f"wftm dropped below {a}")
-                testing[k]["<"].discard(a)
+                base[k]["<"].discard(a)
         for a in v[">"]:
-            if price > a:
+            if price > float(a):
                 await dm(k, f"wftm is now above {a}")
-                testing[k][">"].discard(a)
+                base[k][">"].discard(a)
     print("sent")
-    save_triggers(testing)
+    save_triggers(base)
     print("saved")
 
 
