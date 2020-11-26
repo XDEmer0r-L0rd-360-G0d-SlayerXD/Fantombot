@@ -10,6 +10,7 @@ import subprocess
 import shutil
 import string
 import traceback
+import logging
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -22,6 +23,9 @@ style.use("fivethirtyeight")
 bot_remote = (532751332445257729,)
 # Can do almost anything
 bot_admins = (532751332445257729, 234168704181600258)
+
+# logger for debugging
+# logger = logging.Logger()
 
 prefix = "f!"
 
@@ -144,12 +148,14 @@ def save_triggers(new: dict):
 
 
 async def check_triggers(price):
+    print('entered')
     if not price:
         return
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
     testing = load_triggers()
+    print('loaded')
     # format: {id: {"<": {values}, ">": {values}}}
     for k, v in testing.items():
         for a in v["<"]:
@@ -160,7 +166,9 @@ async def check_triggers(price):
             if price > a:
                 await dm(k, f"wftm is now above {a}")
                 testing[k][">"].discard(a)
+    print("sent")
     save_triggers(testing)
+    print("saved")
 
 
 client = discord.Client()
@@ -313,11 +321,11 @@ async def on_message(message):
                     await msg_channel.send(f"No triggers stored")
                     return
 
-                out = "<\n-------\n"
+                out = "<"
                 for a in parse[msg_author.id]["<"]:
                     out += f"{a}"
 
-                out += "\n>\n-------\n"
+                out += "\n-------\n>\n"
                 for a in parse[msg_author.id][">"]:
                     out += f"{a}"
 
@@ -364,8 +372,9 @@ async def price_check_background_task():
         except Exception as e:
             print(str(e))
             await dm(bot_remote[0], str(e) + str(price))
-
+        print('checked')
         await check_triggers(price)
+        print('done checking')
         await asyncio.sleep(60)
 
 
