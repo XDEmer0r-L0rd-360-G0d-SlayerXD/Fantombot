@@ -304,10 +304,6 @@ async def on_message(message):
         elif "trigger" == msg_command.lower():
             # ensure command is good
             temp = msg_args.split(" ")
-            if len(temp) != 3 or temp[0] not in ("add", '+', 'remove', '-', 'list') or temp[1] not in ("<", ">") \
-                    or not only_digits(temp[2]):
-                await msg_channel.send(f"Bad command. {prefix}trigger [add/remove/list] [</>] [number]")
-                return
 
             parse = load_triggers()
             if temp[0] == 'list':
@@ -324,10 +320,16 @@ async def on_message(message):
                     out += f"{a}"
 
                 await msg_channel.send(out)
+                return
+            
+            if len(temp) != 3 or temp[0] not in ("add", '+', 'remove', '-', 'list') or temp[1] not in ("<", ">") \
+                    or not only_digits(temp[2]):
+                await msg_channel.send(f"Bad command. {prefix}trigger [add/remove/list] [</>] [number]")
+                return
 
-            elif temp[0] in ('add', '+'):
+            if temp[0] in ('add', '+'):
                 if msg_author.id not in parse:
-                    parse[msg_author.id] = {"<": {}, ">": {}}
+                    parse[msg_author.id] = {"<": set(), ">": set()}
                 parse[msg_author.id][temp[1]].add(temp[2])
                 await msg_channel.send(f"Added {temp[1]} {temp[2]} trigger for {msg_author.name}")
 
@@ -354,7 +356,6 @@ async def price_check_background_task():
     while not client.is_closed():
         price = None
         try:
-            price = await convert(wFTM=1)
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
 
