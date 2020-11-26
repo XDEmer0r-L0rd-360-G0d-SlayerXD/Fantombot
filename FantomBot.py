@@ -144,6 +144,8 @@ def save_triggers(new: dict):
 
 
 async def check_triggers(price):
+    if not price:
+        return
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
@@ -308,7 +310,7 @@ async def on_message(message):
             parse = load_triggers()
             if temp[0] == 'list':
                 if msg_author.id not in parse or len(parse[msg_author.id]['<']) == len(parse[msg_author.id]['>']) == 0:
-                    msg_channel.send(f"No triggers stored")
+                    await msg_channel.send(f"No triggers stored")
                     return
 
                 out = "<\n-------\n"
@@ -321,7 +323,7 @@ async def on_message(message):
 
                 await msg_channel.send(out)
                 return
-            
+
             if len(temp) != 3 or temp[0] not in ("add", '+', 'remove', '-', 'list') or temp[1] not in ("<", ">") \
                     or not only_digits(temp[2]):
                 await msg_channel.send(f"Bad command. {prefix}trigger [add/remove/list] [</>] [number]")
