@@ -85,7 +85,7 @@ async def convert(fUSD: int = None, wFTM: int = None) -> float:
         except Exception:
             # try again 1 second later
             await dm(bot_remote[0], traceback.format_exc())
-            await asyncio.sleep(1)
+            await asyncio.sleep(.5)
         count += 1
 
     val = response['data']['defiUniswapAmountsOut'][1]
@@ -155,7 +155,7 @@ async def check_triggers(price):
     price = str(price)
     if not only_digits(price):
         return
-    price = price(float)
+    price = float(price)
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
