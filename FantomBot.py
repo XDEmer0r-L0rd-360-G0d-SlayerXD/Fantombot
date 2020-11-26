@@ -152,6 +152,9 @@ async def check_triggers(price):
     if not price:
         print("price is None")
         return
+    if not only_digits(price):
+        return
+    price = price(float)
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
