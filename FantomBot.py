@@ -10,6 +10,7 @@ import subprocess
 import shutil
 import string
 import traceback
+import copy
 import logging
 
 import pandas as pd
@@ -162,12 +163,16 @@ async def check_triggers(price):
     testing = load_triggers()
     print('loaded')
     # format: {id: {"<": {values}, ">": {values}}}
-    base = testing
+    base = copy.deepcopy(testing)
     for k, v in testing.items():
         for a in v["<"]:
             if price < float(a):
                 await dm(k, f"wftm dropped below {a}")
                 base[k]["<"].discard(a)
+                print(base)
+                print(testing)
+            print(base)
+            print(testing)
         for a in v[">"]:
             if price > float(a):
                 await dm(k, f"wftm is now above {a}")
