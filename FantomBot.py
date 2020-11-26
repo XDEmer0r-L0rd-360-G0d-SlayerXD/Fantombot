@@ -70,7 +70,10 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
         raise ValueError('No conversion done.')
 
     url = 'https://xapi2.fantom.network/api'
+    count = 0
     while True:
+        if count > 10:
+            break
         # This will keep trying until it stops erroring
         try:
             response = requests.post(url=url, json=body).json()
@@ -79,6 +82,7 @@ def convert(fUSD: int = None, wFTM: int = None) -> float:
             # try again 1 second later
             await dm(bot_remote[0], traceback.format_exc())
             await asyncio.sleep(1)
+        count += 1
 
     val = response['data']['defiUniswapAmountsOut'][1]
     return int(val, 16) * conversion_val
@@ -101,6 +105,10 @@ async def dm(user_id: int, text: str):
     A very simple dm wrapper for modularity
     """
     user = client.get_user(user_id)
+    if not user:
+        user = client.get_user(user_id)
+        if not user:
+            return
     await user.send(text)
 
 
@@ -352,7 +360,7 @@ async def price_check_background_task():
 
         except Exception as e:
             print(str(e))
-            await dm(bot_admins[0], str(e) + str(price))
+            await dm(bot_remote[0], str(e) + str(price))
 
         await check_triggers(price)
         await asyncio.sleep(60)
