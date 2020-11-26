@@ -150,6 +150,7 @@ def save_triggers(new: dict):
 async def check_triggers(price):
     print('entered')
     if not price:
+        print("price is None")
         return
     if not os.path.isfile('./bot_data/triggers.txt'):
         with open('./bot_data/triggers.txt', 'w') as f:
@@ -365,6 +366,7 @@ async def price_check_background_task():
 
     while not client.is_closed():
         price = None
+        price = await convert(wFTM=1)
         try:
             with open("price.csv", "a") as f:
                 f.write(f"{int(time.time())},{price}\n")
