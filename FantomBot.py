@@ -140,7 +140,7 @@ def load_triggers() -> dict:
 
 def save_triggers(new: dict):
     with open('./bot_data/triggers.txt', 'w') as f:
-        f.write(str(new))
+        f.write(str(new).replace("{}", "set()"))
 
 
 async def check_triggers(price):
