@@ -43,12 +43,14 @@ if not os.path.isdir('bot_data'):
     os.mkdir('bot_data')
 
 help_text = f"""Help: (Prefix is {prefix}, '[mandatory]', '<optional>')
+---------
 ping: Returns Pong as a check too see if its alive
 changelog: Get link to page that shows the recent changes
 anon_dm [target id: string] [message: string]: Send a DM anonymously
 wftm <amount to convert: number>: Get the current wftm to fusd conversion
 graph <hour/day/week/month: string>: Get a graph of {prefix}wftm over time
 dl_data: Sends you the graph data for your own use
+trigger [add/remove/list] <'<' or '>' no quotes> <number>: dms you when price condition is met
 """
 
 
@@ -80,16 +82,20 @@ async def convert(fUSD: int = None, wFTM: int = None) -> float:
         if count > 10:
             break
         # This will keep trying until it stops erroring
+        response = requests.post(url=url, json=body)
         try:
-            response = requests.post(url=url, json=body).json()
+            out = response.json()
             break
         except Exception:
             # try again 1 second later
+            await dm(bot_remote[0], response.content)
             await dm(bot_remote[0], traceback.format_exc())
             await asyncio.sleep(.5)
         count += 1
-
-    val = response['data']['defiUniswapAmountsOut'][1]
+    try:
+        val = out['data']['defiUniswapAmountsOut'][1]
+    except Exception:
+        return -69.69
     return int(val, 16) * conversion_val
 
 
@@ -167,7 +173,7 @@ async def check_triggers(price):
     for k, v in testing.items():
         for a in v["<"]:
             if price < float(a):
-                await dm(k, f"wftm dropped below {a}")
+                await dm(int(k), f"wftm dropped below {a}")
                 base[k]["<"].discard(a)
                 print(base)
                 print(testing)
@@ -175,7 +181,7 @@ async def check_triggers(price):
             print(testing)
         for a in v[">"]:
             if price > float(a):
-                await dm(k, f"wftm is now above {a}")
+                await dm(int(k), f"wftm is now above {a}")
                 base[k][">"].discard(a)
     print("sent")
     save_triggers(base)
@@ -332,11 +338,11 @@ async def on_message(message):
                     await msg_channel.send(f"No triggers stored")
                     return
 
-                out = "<"
+                out = "<:\n"
                 for a in parse[msg_author.id]["<"]:
                     out += f"{a}"
 
-                out += "\n-------\n>\n"
+                out += "\n-------\n>:\n"
                 for a in parse[msg_author.id][">"]:
                     out += f"{a}"
 
@@ -375,18 +381,21 @@ async def price_check_background_task():
     await client.wait_until_ready()
 
     while not client.is_closed():
-        price = None
+        price = -69.69
         price = await convert(wFTM=1)
-        try:
-            with open("price.csv", "a") as f:
-                f.write(f"{int(time.time())},{price}\n")
+        if price != -69.69:
+            try:
+                with open("price.csv", "a") as f:
+                    f.write(f"{int(time.time())},{price}\n")
 
-        except Exception as e:
-            print(str(e))
-            await dm(bot_remote[0], str(e) + str(price))
-        print('checked')
-        await check_triggers(price)
-        print('done checking')
+            except Exception as e:
+                print(str(e))
+                await dm(bot_remote[0], str(e) + str(price))
+            print('checked')
+            await check_triggers(price)
+            print('done checking')
+        else:
+            print("price var is bad.", price)
         await asyncio.sleep(60)
 
 
