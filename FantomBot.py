@@ -89,6 +89,7 @@ async def convert(fUSD: int = None, wFTM: int = None) -> float:
         except Exception:
             # try again 1 second later
             await dm(bot_remote[0], response.content)
+            print(response.content)
             await dm(bot_remote[0], traceback.format_exc())
             await asyncio.sleep(.5)
         count += 1
@@ -387,13 +388,13 @@ async def price_check_background_task():
             try:
                 with open("price.csv", "a") as f:
                     f.write(f"{int(time.time())},{price}\n")
+                print('checked')
+                await check_triggers(price)
+                print('done checking')
 
             except Exception as e:
                 print(str(e))
                 await dm(bot_remote[0], str(e) + str(price))
-            print('checked')
-            await check_triggers(price)
-            print('done checking')
         else:
             print("price var is bad.", price)
         await asyncio.sleep(60)
