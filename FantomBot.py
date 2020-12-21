@@ -13,6 +13,8 @@ import traceback
 import copy
 import logging
 
+from pycoingecko import CoinGeckoAPI
+
 import pandas as pd
 import matplotlib.pyplot as plt
 from matplotlib import style
@@ -47,7 +49,12 @@ help_text = f"""Help: (Prefix is {prefix}, '[mandatory]', '<optional>')
 ping: Returns Pong as a check too see if its alive
 changelog: Get link to page that shows the recent changes
 anon_dm [target id: string] [message: string]: Send a DM anonymously
+doge: Get the current price of Dogecoin
+eth: Get the current price of Ethereum
+ftm: Get the current price of Fantom
+link: Get the current price of Chainlink
 wftm <amount to convert: number>: Get the current wftm to fusd conversion
+search: searches for a coin, if it exists, prints price
 graph <hour/day/week/month: string>: Get a graph of {prefix}wftm over time
 dl_data: Sends you the graph data for your own use
 trigger [add/remove/list] <'<' or '>' no quotes> <number>: dms you when price condition is met
@@ -99,6 +106,12 @@ async def convert(fUSD: int = None, wFTM: int = None) -> float:
         return -69.69
     return int(val, 16) * conversion_val
 
+async def convert_gecko(coin_id):
+    # Converts coins that are on CoinGecko
+    cg = CoinGeckoAPI()
+    price = cg.get_price(ids=coin_id, vs_currencies='usd')
+    price = price[coin_id]['usd']
+    return price
 
 def restart():
     print("Restarting.")
@@ -156,7 +169,6 @@ def save_triggers(new: dict):
 
 
 async def check_triggers(price):
-    print('entered')
     if not price:
         print("price is None")
         return
@@ -168,7 +180,6 @@ async def check_triggers(price):
         with open('./bot_data/triggers.txt', 'w') as f:
             f.write(str({}))
     testing = load_triggers()
-    print('loaded')
     # format: {id: {"<": {values}, ">": {values}}}
     base = copy.deepcopy(testing)
     for k, v in testing.items():
@@ -176,17 +187,11 @@ async def check_triggers(price):
             if price < float(a):
                 await dm(int(k), f"wftm dropped below {a}")
                 base[k]["<"].discard(a)
-                print(base)
-                print(testing)
-            print(base)
-            print(testing)
         for a in v[">"]:
             if price > float(a):
                 await dm(int(k), f"wftm is now above {a}")
                 base[k][">"].discard(a)
-    print("sent")
     save_triggers(base)
-    print("saved")
 
 
 client = discord.Client()
@@ -290,15 +295,45 @@ async def on_message(message):
         elif "DL" == msg_command and msg_author.id in bot_remote:
             await send_file(msg_author.id, msg_args)
 
+        # Coins
+        elif "doge" == msg_command.lower():
+            price = await convert_gecko("dogecoin")
+            await msg_channel.send(f"Dogecoin: {price}")
+        
+        elif "eth" == msg_command.lower():
+            price = await convert_gecko("ethereum")
+            await msg_channel.send(f"Ethereum: {price}")
+            
+        elif "ftm" == msg_command.lower():
+            price = await convert_gecko("fantom")
+            await msg_channel.send(f"FTM: {price}")
+
+        elif "link" == msg_command.lower():
+            price = await convert_gecko("chainlink")
+            await msg_channel.send(f"Link: {price}")
+        
         elif "wftm" == msg_command.lower():
             if msg_args == "":
                 msg_args = "1"
             if only_digits(msg_args):
                 price = await convert(wFTM=max(0, int(msg_args)))
+                price = round(price, 8)
                 await msg_channel.send(f"wFTM: {price}")
             else:
                 await msg_channel.send("Bad value.")
 
+        # Search
+        elif "search" == msg_command.lower():
+            msg_args = msg_args.lower()
+
+            try:
+                price = await convert_gecko(msg_args)
+                msg_args = msg_args.capitalize()
+                await msg_channel.send(f"{msg_args}: {price}")
+            except:
+                await msg_channel.send("No coin found")
+
+        # Graphing function(s?)
         elif "graph" == msg_command.lower():
             plt.clf()
             df = pd.read_csv("price.csv", names=['time', 'price'])
@@ -313,7 +348,6 @@ async def on_message(message):
                 df = df if len(df) < 43200 else df[-43200:]
             else:
                 df = df
-            print(df.tail())
 
             df['date'] = pd.to_datetime(df['time'], unit='s')
             df.drop("time", 1, inplace=True)
@@ -323,7 +357,20 @@ async def on_message(message):
             plt.savefig("price.png")
 
             file = discord.File("price.png", filename="price.png")
-            await msg_channel.send("price.png", file=file)
+            
+            first = df['price'].iloc[0]
+            last  = df['price'].iloc[len(df)-1]
+
+            change = last/first
+
+            # change = '{:.4f}'.format(change), string
+            
+            if change >= 1:
+                change = (change - 1) * 100
+                await msg_channel.send(f"The price has increased by {change}%", file=file)
+            else:
+                change = (1 - change) * 100
+                await msg_channel.send(f"The price has decreased by {change}%", file=file)
 
         elif "dl_data" == msg_command.lower():
             # Do we want this to dm or to post into channel? todo
@@ -341,11 +388,11 @@ async def on_message(message):
 
                 out = "<:\n"
                 for a in parse[msg_author.id]["<"]:
-                    out += f"{a}"
+                    out += f"{a} "
 
                 out += "\n-------\n>:\n"
                 for a in parse[msg_author.id][">"]:
-                    out += f"{a}"
+                    out += f"{a} "
 
                 await msg_channel.send(out)
                 return
@@ -388,9 +435,7 @@ async def price_check_background_task():
             try:
                 with open("price.csv", "a") as f:
                     f.write(f"{int(time.time())},{price}\n")
-                print('checked')
                 await check_triggers(price)
-                print('done checking')
 
             except Exception as e:
                 print(str(e))
